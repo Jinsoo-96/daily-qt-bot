@@ -35,7 +35,7 @@ def get_qt_data():
         
         for el in bible_div.find_all(['p', 'table']):
             if el.name == 'p' and 'title' in el.get('class', []):
-                content_parts.append(f"\n**{el.get_text(strip=True)}**")
+                content_parts.append(f"\n### {el.get_text(strip=True)}")
             elif el.name == 'table':
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
