@@ -28,9 +28,9 @@ def get_qt_data():
         
         bible_div = soup.select_one('.bible')
         content_parts = [
+            "⠀", # 위 줄을 복사해서 넣어보세요.
             f"## {qt_title}",
             "⠀", # 이 줄은 일반 공백이 아니라 특수 투명 문자입니다.
-            "⠀", # 위 줄을 복사해서 넣어보세요.
         ]
         
         for el in bible_div.find_all(['p', 'table']):
