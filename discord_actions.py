@@ -15,16 +15,19 @@ async def post_daily_qt(channel, date, bible_range, content):
 
 # 2. 월요일: 차주 주일 모임 포스트 & 투표 생성
 async def create_sunday_gathering_post(channel, sunday_date_str):
-    # 1. 일단 포스트(스레드)부터 생성
-    thread = await channel.create_thread(
+    # 포스트 생성
+    result = await channel.create_thread(
         name=f"{sunday_date_str} 모임",
         content=f"🗓️ **{sunday_date_str} 주일 모임 안내**\n이번 주 모임 참석 여부를 확인해 주세요!"
     )
     
-    # 2. 방이 만들어질 때까지 2초 대기
+    # [중요] result에서 진짜 스레드 객체를 꺼냅니다.
+    target_thread = result.thread
+    
+    # 안정화를 위해 2초 대기
     await asyncio.sleep(2)
     
-    # 3. 생성된 방에 투표 따로 던지기
+    # 투표 생성
     poll = discord.Poll(
         question="참여 가능인원 확인 (수요일까지 투표해주시고, 변경사항이 있으신 분은 개인연락 부탁드려요)",
         duration=datetime.timedelta(hours=168)
@@ -33,7 +36,8 @@ async def create_sunday_gathering_post(channel, sunday_date_str):
     poll.add_answer(text="불가능", emoji="❌")
     poll.add_answer(text="미정(개인 연락하겠습니다)", emoji="💬")
 
-    await thread.send(poll=poll)
+    # 꺼내온 스레드 객체(target_thread)에 투표 전송
+    await target_thread.send(poll=poll)
     print(f"✅ {sunday_date_str} 포스트 생성 및 투표 전송 완료")
 
 # 3. 일요일: 오늘 모임 포스트 추적 및 임베드 전송
