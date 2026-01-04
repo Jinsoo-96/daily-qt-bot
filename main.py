@@ -69,19 +69,19 @@ async def run_bot():
         channel = client.get_channel(channel_id)
 
         if channel and isinstance(channel, discord.ForumChannel):
-            
-            # --- [개선 포인트 1] 기존 고정 포스트 해제 ---
-            # 모든 글을 뒤지지 않고 현재 활성화된 스레드 중 고정된 것만 타겟팅
-            print("🔓 기존 고정 포스트 확인 중...")
-            for thread in channel.threads:
-                if thread.pinned:
-                    try:
-                        await thread.edit(pinned=False)
-                        print(f"✔️ 기존 고정 해제 완료: {thread.name}")
-                        break # 포럼은 고정이 하나뿐이므로 하나 찾으면 바로 종료
-                    except:
-                        pass
+            # [개선] '가장 최근에 고정된 것 하나'만 딱 집어서 가져옵니다.
+            # for문을 돌리는 것보다 내부적으로 훨씬 빠르고 깔끔합니다.
+            pinned_thread = discord.utils.get(channel.threads, pinned=True)
 
+            if pinned_thread:
+                try:
+                    await pinned_thread.edit(pinned=False)
+                    print(f"🔓 기존 고정('{pinned_thread.name}')을 해제했습니다.")
+                except:
+                    pass
+
+            # 이제 새 포스트를 생성하고 고정합니다.
+            # (이하 생략 - 이전 로직과 동일)
             # --- [개선 포인트 2] 새 포스트 생성 및 이중 고정 ---
             embed = discord.Embed(description=content, color=0x57F287)
             embed.set_footer(text="출처: 두란노 생명의 삶", icon_url="https://www.duranno.com/favicon.ico")
