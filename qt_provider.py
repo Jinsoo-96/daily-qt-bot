@@ -30,7 +30,13 @@ def get_qt_data():
             elif el.name == 'table':
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
-                content_parts.append(f"{num}\. {txt}")
+
+                # [최종 수정] 1절이면서, 앞에 이미 다른 내용(절)이 기록되어 있을 때만 빈 줄 추가
+                # 이렇게 하면 첫 구절이 1절일 때는 빈 줄이 생기지 않습니다.
+                if num == '1' and len(content_parts) > 3: # 기본 헤더(제목 등) 개수보다 많을 때
+                    content_parts.append("")
+
+                content_parts.append(f"{num}. {txt}")
                 
         footer = f"\n\n\n**💡 오늘도 주님의 말씀으로 승리하는 하루가 됩시다!**\n\n@everyone  [_]({url})"
         main_body = "\n".join(content_parts)
