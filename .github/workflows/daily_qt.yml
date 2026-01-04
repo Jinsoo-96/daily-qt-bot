@@ -1,10 +1,9 @@
-name: Daily QT
+name: Daily QT Bot
 
 on:
   schedule:
-    # 매일 한국시간(KST) 오전 6시 실행 (UTC 21시)
-    - cron: '0 21 * * *'
-  workflow_dispatch: # 수동 실행 버튼 활성화
+    - cron: '0 21 * * *' # KST 오전 6시
+  workflow_dispatch:
 
 jobs:
   build:
@@ -20,11 +19,11 @@ jobs:
           python-version: '3.9'
 
       - name: Install dependencies
-        run: |
-          pip install requests beautifulsoup4 discord.py
+        run: pip install requests beautifulsoup4 discord.py
 
-      - name: Run Bot
+- name: Run
         env:
           DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
-          FORUM_CHANNEL_ID: ${{ secrets.FORUM_CHANNEL_ID }}
-        run: python main.py
+          QT_CHANNEL_ID: ${{ secrets.QT_CHANNEL_ID }}
+          SUNDAY_CHANNEL_ID: ${{ secrets.SUNDAY_CHANNEL_ID }}
+        run: python main.py --mode qt

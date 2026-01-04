@@ -1,0 +1,56 @@
+import discord
+import asyncio
+import datetime
+
+# 1. 큐티 포스트
+async def post_daily_qt(channel, date, bible_range, content):
+    active_threads = await channel.guild.active_threads()
+    for thread in active_threads:
+        if thread.parent_id == channel.id and thread.flags.pinned:
+            await thread.edit(pinned=False); break
+    new_post = await channel.create_thread(name=f"{date} - {bible_range}", content=content)
+    await asyncio.sleep(2)
+    await new_post.thread.edit(pinned=True)
+    await new_post.message.pin()
+
+# 2. 월요일: 차주 주일 모임 포스트 & 투표 생성
+async def create_sunday_gathering_post(channel, sunday_date_str):
+    poll = discord.Poll(
+        question="참여 가능인원 확인 (수요일까지 투표해주시고, 변경사항이 있으신 분은 개인연락 부탁드려요)",
+        duration=datetime.timedelta(hours=168)
+    )
+    poll.add_answer(text="가능", emoji="✅")
+    poll.add_answer(text="불가능", emoji="❌")
+    poll.add_answer(text="미정(개인 연락하겠습니다)", emoji="💬")
+    
+    # 포스트 생성 (제목: 2026.01.11 모임)
+    await channel.create_thread(
+        name=f"{sunday_date_str} 모임",
+        content=f"🗓️ **{sunday_date_str} 주일 모임 안내**\n이번 주 모임 참석 여부를 확인해 주세요!",
+        poll=poll
+    )
+
+# 3. 일요일: 오늘 모임 포스트 추적 및 임베드 전송
+async def send_sunday_summary_embed(channel, today_date_str):
+    target_thread = None
+    # 활성/보관 스레드에서 오늘 날짜 제목 찾기
+    async for thread in channel.archived_threads(limit=20):
+        if today_date_str in thread.name and "모임" in thread.name:
+            target_thread = thread; break
+    if not target_thread:
+        for thread in channel.threads:
+            if today_date_str in thread.name and "모임" in thread.name:
+                target_thread = thread; break
+
+    if target_thread:
+        embed = discord.Embed(
+            title="📢 오늘 모임 정리 및 나눔",
+            description="오늘 모임의 내용을 아래 양식에 맞춰 한 줄 정도로 정리해 주세요!",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
+        embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
+        
+        await target_thread.send(embed=embed)
+    else:
+        print(f"❌ {today_date_str} 포스트를 찾지 못했습니다.")

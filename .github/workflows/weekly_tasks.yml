@@ -1,0 +1,21 @@
+name: Weekly Gathering Tasks
+on:
+  schedule:
+    - cron: '0 0 * * 1'   # 월요일 KST 09:00 (새 포스트 생성)
+    - cron: '30 3 * * 0'  # 일요일 KST 12:30 (오늘 포스트 추적)
+  workflow_dispatch:
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v3
+      - uses: actions/setup-python@v4
+        with:
+          python-version: '3.9'
+      - run: pip install requests beautifulsoup4 discord.py
+      - name: Run
+        env:
+          DISCORD_BOT_TOKEN: ${{ secrets.DISCORD_BOT_TOKEN }}
+          QT_CHANNEL_ID: ${{ secrets.QT_CHANNEL_ID }}
+          SUNDAY_CHANNEL_ID: ${{ secrets.SUNDAY_CHANNEL_ID }}
+        run: python main.py --mode task
