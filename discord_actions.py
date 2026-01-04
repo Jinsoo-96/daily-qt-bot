@@ -58,7 +58,7 @@ async def send_sunday_summary_embed(channel, today_date_str):
         print(f"⚠️ {today_date_str} 포스트를 찾지 못해 새로 생성합니다.")
         result = await channel.create_thread(
             name=f"{today_date_str} 모임",
-            content=f"🗓️ **{today_date_str} 주일 모임** (자동 생성됨)"
+            content=f"🗓️ **{today_date_str} 주일 모임**"
         )
         target_thread = result.thread 
         await asyncio.sleep(2)
@@ -70,7 +70,7 @@ async def send_sunday_summary_embed(channel, today_date_str):
             description="오늘 모임의 내용을 아래 양식에 맞춰 한 줄 정도로 정리해 주세요!",
             color=discord.Color.blue()
         )
-        embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
+        embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수(+ 누구누구 왔는지)\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
         # 푸터의 @everyone은 알림 기능은 없지만, 누가 대상인지 보여주는 용도로 둡니다.
         embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
         
