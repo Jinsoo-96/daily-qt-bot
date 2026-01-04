@@ -28,9 +28,8 @@ def get_qt_data():
         
         bible_div = soup.select_one('.bible')
         content_parts = [
-            f"## {bible_range}",
-            f"**{qt_title}**",
-            "~~　　　　　　　　　　　　　　　　　　　　~~", 
+            f"## {qt_title}",
+            "\n\n\n\n\n", 
         ]
         
         for el in bible_div.find_all(['p', 'table']):
@@ -94,7 +93,7 @@ async def run_bot():
 
                 # 2. 새 포스트 생성 (제목: 날짜)
                 new_post = await channel.create_thread(
-                    name=f"{date}",
+                    name=f"{date} - {bible_range}",
                     content=content 
                 )
                 
