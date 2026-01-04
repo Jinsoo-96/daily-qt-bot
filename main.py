@@ -6,60 +6,37 @@ import asyncio
 
 def get_qt_data():
     url = "https://www.duranno.com/qt/view/bible.asp"
-    headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
-    }
-    
+    headers = {'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'}
     try:
         res = requests.get(url, headers=headers)
         res.encoding = 'euc-kr'
         soup = BeautifulSoup(res.text, 'html.parser')
-
-        date_el = soup.select_one('.date li:nth-child(2)')
-        date = date_el.get_text(strip=True) if date_el else "0000.00.00"
-
+        date = soup.select_one('.date li:nth-child(2)').get_text(strip=True) if soup.select_one('.date li:nth-child(2)') else "0000.00.00"
         qt_header = soup.select_one('.font-size h1')
-        if not qt_header:
-            return None, None, None
-            
         bible_range = qt_header.select_one('span').get_text(strip=True).replace('\xa0', ' ')
         qt_title = qt_header.select_one('em').get_text(strip=True).replace('\xa0', ' ')
-
-        content_parts = []
-        content_parts.append(f"# {qt_title}") 
-        content_parts.append(f"`📜 {bible_range}`") 
-        content_parts.append("\n---") 
-        content_parts.append("### 📖 성경 말씀")
-        
         bible_div = soup.select_one('.bible')
-        elements = bible_div.find_all(['p', 'table'])
-        
-        for el in elements:
+        content_parts = [f"# {qt_title}", f"`📜 {bible_range}`", "\n---", "### 📖 성경 말씀"]
+        for el in bible_div.find_all(['p', 'table']):
             if el.name == 'p' and 'title' in el.get('class', []):
                 content_parts.append(f"\n**{el.get_text(strip=True)}**")
             elif el.name == 'table':
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
                 content_parts.append(f"> **{num}** {txt}")
-
         content_parts.append("\n---\n*💡 오늘도 주님의 말씀으로 승리하는 청년부가 됩시다!*")
-        
         return date, qt_title, "\n".join(content_parts)
-    except Exception as e:
-        print(f"데이터 수집 중 오류: {e}")
-        return None, None, None
+    except: return None, None, None
 
 async def run_bot():
     token = os.environ.get('DISCORD_BOT_TOKEN')
     channel_id_str = os.environ.get('FORUM_CHANNEL_ID')
+    if not token or not channel_id_str: return
     
-    if not token or not channel_id_str:
-        print("❌ 환경변수 설정 오류")
-        return
-
     channel_id = int(channel_id_str)
     intents = discord.Intents.default()
-    intents.message_content = True 
+    # ⚠️ 중요: 봇이 채널 정보를 제대로 읽으려면 아래 설정이 필요합니다.
+    intents.guilds = True 
     client = discord.Client(intents=intents)
 
     @client.event
@@ -69,47 +46,40 @@ async def run_bot():
         channel = client.get_channel(channel_id)
 
         if channel and isinstance(channel, discord.ForumChannel):
-            # [개선] '가장 최근에 고정된 것 하나'만 딱 집어서 가져옵니다.
-            # for문을 돌리는 것보다 내부적으로 훨씬 빠르고 깔끔합니다.
-            pinned_thread = discord.utils.get(channel.threads, pinned=True)
+            # [수정] channel.threads 대신 active_threads() 사용하여 실시간 서버 데이터 호출
+            print("🔍 기존 고정 게시물 찾는 중...")
+            try:
+                # 활성 스레드 목록을 서버에서 직접 가져옵니다.
+                active_threads = await channel.guild.active_threads()
+                for thread in active_threads:
+                    # 해당 포럼 채널에 속해 있고, 고정된(pinned) 스레드인지 확인
+                    if thread.parent_id == channel.id and thread.pinned:
+                        await thread.edit(pinned=False)
+                        print(f"🔓 기존 고정 해제: {thread.name}")
+                        break # 하나만 풀면 되므로 즉시 탈출
+            except Exception as e:
+                print(f"고정 해제 과정 오류(무시가능): {e}")
 
-            if pinned_thread:
-                try:
-                    await pinned_thread.edit(pinned=False)
-                    print(f"🔓 기존 고정('{pinned_thread.name}')을 해제했습니다.")
-                except:
-                    pass
-
-            # 이제 새 포스트를 생성하고 고정합니다.
-            # (이하 생략 - 이전 로직과 동일)
-            # --- [개선 포인트 2] 새 포스트 생성 및 이중 고정 ---
+            # 새 포스트 생성
             embed = discord.Embed(description=content, color=0x57F287)
             embed.set_footer(text="출처: 두란노 생명의 삶", icon_url="https://www.duranno.com/favicon.ico")
             
-            # 포스트 생성
             thread_with_message = await channel.create_thread(
                 name=f"[{date}] {title}",
-                content=f"📖 **{date}** 오늘의 말씀이 도착했습니다! @everyone",
+                content=f"📖 **{date}** 오늘의 말씀 @everyone",
                 embed=embed
             )
             
-            # 시스템 안정성을 위해 1.5초 대기
-            await asyncio.sleep(1.5)
+            await asyncio.sleep(2) # 서버 반영 대기
 
-            # 1. 메시지 고정 (포스트 내부 최상단 고정)
+            # 본문 메시지 고정 및 포스트 상단 고정
             try:
                 await thread_with_message.message.pin()
-                print("📌 포스트 내부 본문 고정 성공")
-            except: pass
-
-            # 2. 포스트 고정 (포럼 목록 최상단 고정)
-            try:
                 await thread_with_message.thread.edit(pinned=True)
-                print("🔝 포럼 목록 상단 고정 성공")
-            except: pass
+                print(f"🚀 [{date}] 게시 및 고정 완료!")
+            except Exception as e:
+                print(f"고정 작업 실패: {e}")
 
-            print(f"🚀 [{date}] 모든 게시 및 정리 작업 완료!")
-        
         await client.close()
 
     await client.start(token)
