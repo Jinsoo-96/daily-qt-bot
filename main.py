@@ -1,8 +1,11 @@
+import discord
 import requests
 from bs4 import BeautifulSoup
 import os
+import asyncio
 
-def get_qt():
+# 1. 두란노 생명의 삶 데이터 스크래핑
+def get_qt_data():
     url = "https://www.duranno.com/qt/view/bible.asp"
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36'
@@ -13,70 +16,81 @@ def get_qt():
         res.encoding = 'euc-kr'
         soup = BeautifulSoup(res.text, 'html.parser')
 
-        # 1. 날짜 추출 (포스트 제목용)
+        # 날짜 추출
         date_el = soup.select_one('.date li:nth-child(2)')
-        date_title = date_el.get_text(strip=True) if date_el else "오늘의 QT"
+        date = date_el.get_text(strip=True) if date_el else "0000.00.00"
 
-        # 2. 제목 및 성경 범위 추출
+        # 제목 및 성경 범위 추출
         qt_header = soup.select_one('.font-size h1')
         bible_range = qt_header.select_one('span').get_text(strip=True).replace('\xa0', ' ')
         qt_title = qt_header.select_one('em').get_text(strip=True).replace('\xa0', ' ')
 
-        # 3. 본문 내용 마크다운 구성
+        # 본문 내용 마크다운 구성
         bible_div = soup.select_one('.bible')
         content_parts = []
-        
-        # 본문 상단에 큰 제목과 범위 강조
         content_parts.append(f"# {qt_title}") 
         content_parts.append(f"> **{bible_range}**\n")
 
         elements = bible_div.find_all(['p', 'table'])
         for el in elements:
             if el.name == 'p' and 'title' in el.get('class', []):
-                # 소제목 (📌 아이콘과 함께 강조)
-                subtitle = el.get_text(strip=True)
-                content_parts.append(f"### 📌 {subtitle}")
+                content_parts.append(f"### 📌 {el.get_text(strip=True)}")
             elif el.name == 'table':
-                # 절 번호는 굵게, 말씀은 일반 텍스트
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
                 content_parts.append(f"**{num}** {txt}")
 
-        full_markdown = "\n".join(content_parts)
-
-        # 4. 디스코드 전송 데이터 (포스트 형식)
-        payload = {
-            # 일반 채널일 경우 제목처럼 보이게 함
-            "content": f"## 📅 {date_title} 새 포스트", 
-            "embeds": [{
-                "title": f"{date_title} 말씀 묵상",
-                "description": full_markdown,
-                "color": 5763719, # 청년부 느낌의 녹색 계열 (성장)
-                "footer": {
-                    "text": "출처: 두란노 생명의 삶",
-                    "icon_url": "https://www.duranno.com/favicon.ico"
-                }
-            }]
-        }
-        
-        # 만약 포럼 채널을 사용한다면 포스트 제목을 날짜로 설정
-        # (웹후크가 포럼용일 경우 아래 thread_name이 제목이 됩니다)
-        payload["thread_name"] = f"[{date_title}] {qt_title}"
-        
-        return payload
-
+        return date, qt_title, "\n".join(content_parts)
     except Exception as e:
-        print(f"오류 발생: {e}")
-        return None
+        print(f"데이터 수집 중 오류: {e}")
+        return None, None, None
 
-# 전송 로직
-webhook_url = os.environ.get('DISCORD_WEBHOOK_URL')
-if webhook_url:
-    payload = get_qt()
-    if payload:
-        # 디스코드 전송
-        response = requests.post(webhook_url, json=payload)
-        if response.status_code in [200, 204]:
-            print(f"✅ 성공: {payload['thread_name']} 게시 완료")
+# 2. 디스코드 봇 실행 및 포스트 생성/고정
+async def run_bot():
+    token = os.environ.get('DISCORD_BOT_TOKEN')
+    channel_id_str = os.environ.get('FORUM_CHANNEL_ID')
+    
+    if not token or not channel_id_str:
+        print("❌ 환경변수(TOKEN 또는 ID)가 설정되지 않았습니다.")
+        return
+
+    channel_id = int(channel_id_str)
+    
+    intents = discord.Intents.default()
+    intents.message_content = True 
+    client = discord.Client(intents=intents)
+
+    @client.event
+    async def on_ready():
+        print(f'✅ {client.user} 계정으로 로그인 성공!')
+        date, title, content = get_qt_data()
+        
+        if not date:
+            await client.close()
+            return
+
+        channel = client.get_channel(channel_id)
+        if channel and isinstance(channel, discord.ForumChannel):
+            # 새 포스트 생성
+            embed = discord.Embed(description=content, color=0x57F287) # 연두색(성장)
+            embed.set_footer(text="출처: 두란노 생명의 삶", icon_url="https://www.duranno.com/favicon.ico")
+            
+            # 포스트 생성 (thread_name 사용)
+            thread_info = await channel.create_thread(
+                name=f"[{date}] {title}",
+                content=f"📖 {date} 오늘의 말씀이 도착했습니다! @everyone",
+                embed=embed
+            )
+            
+            # 생성된 포스트 즉시 고정
+            await thread_info.thread.edit(pinned=True)
+            print(f"🚀 [{date}] 포스트 생성 및 고정 완료!")
         else:
-            print(f"❌ 실패: {response.status_code}")
+            print("❌ 포럼 채널을 찾을 수 없거나 ID가 올바르지 않습니다.")
+        
+        await client.close()
+
+    await client.start(token)
+
+if __name__ == "__main__":
+    asyncio.run(run_bot())
