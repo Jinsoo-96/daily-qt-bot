@@ -29,7 +29,7 @@ def get_qt_data():
         bible_div = soup.select_one('.bible')
         content_parts = [
             f"## {bible_range}",
-            f"### {qt_title}",
+            f"**{qt_title}**",
             "~~　　　　　　　　　　　　　　　　　　　　~~", 
         ]
         
