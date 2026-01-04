@@ -12,21 +12,20 @@ def get_qt_data():
         res.encoding = 'euc-kr'
         soup = BeautifulSoup(res.text, 'html.parser')
         
-        # 날짜 추출 (0000.00.00 형식)
+        # 날짜 추출
         date = soup.select_one('.date li:nth-child(2)').get_text(strip=True) if soup.select_one('.date li:nth-child(2)') else "0000.00.00"
         
         qt_header = soup.select_one('.font-size h1')
-        # [수정] 성경 범위에서 모든 공백 제거 (예: 2:28~3:12)
+        # 성경 범위 공백 제거 (예: 2:28~3:12)
         bible_range = qt_header.select_one('span').get_text(strip=True).replace('\xa0', '').replace(' ', '')
-        # 큐티 제목 추출
+        # 큐티 제목
         qt_title = qt_header.select_one('em').get_text(strip=True).replace('\xa0', ' ')
         
         bible_div = soup.select_one('.bible')
-        # [수정] 본문 구성: 제목에서 성경 범위(bible_range)는 제외함
         content_parts = [
-            f"# {qt_title}",
-            "~~　　　　　　　　　　　　　　　　　　　　~~", # 가로선 효과
-            "\n"
+            f"# {bible_range}",
+            f"## {qt_title}",
+            "~~　　　　　　　　　　　　　　　　　　　　~~", 
         ]
         
         for el in bible_div.find_all(['p', 'table']):
@@ -35,25 +34,31 @@ def get_qt_data():
             elif el.name == 'table':
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
+                # 숫자 목록 마크다운 (자동 들여쓰기 정렬)
+                content_parts.append(f"{num}. {txt}")
                 
-                # '숫자.' 형식을 사용하면 디스코드에서 자동으로 들여쓰기 리스트를 만듭니다.
-                # 단, 인용구(>) 안에서 사용하면 왼쪽 바(|)와 함께 정렬되어 훨씬 보기 좋습니다.
-                content_parts.append(f"> {num}. {txt}")
-                
-        content_parts.append("**💡 오늘도 주님의 말씀으로 승리하는 하루가 됩시다!** \n@everyone")
+        # [수정된 부분] 들여쓰기 위치 조정 및 안전한 메시지 결합
+        footer = f"\n**💡 오늘도 주님의 말씀으로 승리하는 하루가 됩시다!**\n🔗 [본문링크]({url})\n@everyone"
+        main_body = "\n".join(content_parts)
         
-        full_content = "\n".join(content_parts)
-        if len(full_content) > 1950:
-            full_content = full_content[:1950] + "\n\n...(본문이 길어 생략되었습니다)"
-            
+        # 디스코드 2000자 제한 대응 (footer 길이를 뺀 나머지만 본문 허용)
+        max_body_length = 1980 - len(footer)
+        if len(main_body) > max_body_length:
+            main_body = main_body[:max_body_length - 35] + "\n\n...(본문이 길어 생략되었습니다)"
+        
+        full_content = main_body + footer
         return date, qt_title, bible_range, full_content
-    except:
+        
+    except Exception as e:
+        print(f"데이터 수집 중 오류: {e}")
         return None, None, None, None
 
 async def run_bot():
     token = os.environ.get('DISCORD_BOT_TOKEN')
     channel_id_str = os.environ.get('FORUM_CHANNEL_ID')
-    if not token or not channel_id_str: return
+    if not token or not channel_id_str: 
+        print("❌ 환경 변수 설정이 누락되었습니다.")
+        return
     
     channel_id = int(channel_id_str)
     intents = discord.Intents.default()
@@ -65,7 +70,9 @@ async def run_bot():
     async def on_ready():
         print(f'✅ {client.user} 로그인 성공.')
         date, title, bible_range, content = get_qt_data()
+        
         if not content:
+            print("❌ 콘텐츠를 가져오지 못했습니다.")
             await client.close()
             return
         
@@ -80,24 +87,24 @@ async def run_bot():
                         print(f"✔️ 이전 포스트 고정 해제: {thread.name}")
                         break
 
-                # 2. [수정] 새 포스트 생성: 제목에 날짜와 성경 범위를 넣음
+                # 2. 새 포스트 생성 (제목: 날짜)
                 new_post = await channel.create_thread(
-                    name=f"[{date}] {bible_range}",
+                    name=f"{date}",
                     content=content 
                 )
                 
                 await asyncio.sleep(2)
 
                 try:
-                    # 포스트 상단 고정
+                    # 포스트 목록 상단 고정
                     await new_post.thread.edit(pinned=True)
-                    # 본문 메시지 고정
+                    # 포스트 내부 첫 메시지 고정
                     await new_post.message.pin()
                     print(f"🚀 [{date}] 게시 및 상단 고정 완료!")
                 except Exception as e:
-                    print(f"고정 실패: {e}")
+                    print(f"고정 작업 중 오류: {e}")
         except Exception as e:
-            print(f"오류 발생: {e}")
+            print(f"채널 처리 중 오류: {e}")
 
         await client.close()
 
