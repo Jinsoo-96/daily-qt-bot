@@ -18,7 +18,7 @@ async def create_sunday_gathering_post(channel, sunday_date_str):
     # 포스트 생성
     result = await channel.create_thread(
         name=f"{sunday_date_str} 모임",
-        content=f"🗓️ **{sunday_date_str} 주일 모임 안내**\n이번 주 모임 참석 여부를 확인해 주세요!"
+        content=f"🗓️ **{sunday_date_str} 주일 모임 안내**\n이번 주 모임 참석 여부를 확인해 주세요!\n@everyone"
     )
     
     # [중요] result에서 진짜 스레드 객체를 꺼냅니다.
@@ -74,7 +74,7 @@ async def send_sunday_summary_embed(channel, today_date_str):
             color=discord.Color.blue()
         )
         embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
-        embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
+        embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨ @everyone")
         
         # 이제 .send 가 정상 작동합니다.
         await target_thread.send(embed=embed)
