@@ -46,49 +46,43 @@ async def run_bot():
         date, title, content = get_qt_data()
         
         try:
-            # fetch_channel로 최신 채널 상태 강제 동기화
             channel = await client.fetch_channel(channel_id)
         except:
             await client.close()
             return
 
         if isinstance(channel, discord.ForumChannel):
-            # 1. [핵심 수정] 기존 고정 포스트 해제
-            print("🔓 기존 고정 포스트 해제 확인 중...")
+            # [최적화 핵심] 전체 스레드가 아닌 '고정된 메시지/포스트'만 즉시 가져오기
+            print("🔓 기존 고정 게시물 해제 작업 시작...")
             try:
-                # 활성화된 모든 스레드를 가져옵니다.
-                threads = await channel.guild.active_threads()
-                for thread in threads:
-                    # 해당 포럼 채널의 스레드이고, 고정(flags.pinned) 상태인지 확인
-                    if thread.parent_id == channel.id and thread.flags.pinned:
-                        await thread.edit(pinned=False)
-                        print(f"✔️ 이전 포스트 고정 해제: {thread.name}")
-                        break 
+                # pins()는 채널 내 고정된 모든 항목을 리스트로 반환합니다.
+                pinned_items = await channel.pins() 
+                for item in pinned_items:
+                    # 포스트(스레드) 고정은 메시지의 thread 속성을 통해 접근합니다.
+                    if item.thread and item.thread.flags.pinned:
+                        await item.thread.edit(pinned=False)
+                        print(f"✔️ 기존 고정 해제 성공: {item.thread.name}")
+                        break # 포럼 고정은 하나뿐이므로 즉시 탈출
             except Exception as e:
-                print(f"고정 해제 로직 실행 중 오류: {e}")
+                print(f"고정 해제 과정 중 알림: {e}")
 
-            # 2. 새 포스트 생성
-            embed = discord.Embed(description=content, color=0x57F287)
-            embed.set_footer(text="출처: 두란노 생명의 삶", icon_url="https://www.duranno.com/favicon.ico")
-            
-            # create_thread는 Thread 객체를 반환하며, 내부 메시지는 .message로 접근
+            # 새 포스트 생성 및 고정
             new_thread = await channel.create_thread(
                 name=f"[{date}] {title}",
                 content=f"📖 **{date}** 오늘의 말씀이 도착했습니다! @everyone",
-                embed=embed
+                embed=discord.Embed(description=content, color=0x57F287)
             )
             
             await asyncio.sleep(2) 
 
-            # 3. [최종 단계] 이중 고정 수행 (포스트 상단 + 본문 메시지)
             try:
-                # (1) 포스트 자체를 포럼 상단에 고정
+                # 포스트 상단 고정 (가장 중요한 자동화 영역)
                 await new_thread.thread.edit(pinned=True)
-                # (2) 포스트 내부의 첫 메시지 고정
+                # 본문 메시지 핀
                 await new_thread.message.pin()
-                print(f"🚀 [{date}] 새 포스트 상단 고정 및 본문 고정 완료!")
+                print(f"🚀 [{date}] 새 포스트 상단 고정 완료!")
             except Exception as e:
-                print(f"고정 작업 최종 실패: {e}")
+                print(f"고정 작업 실패: {e}")
 
         await client.close()
 
