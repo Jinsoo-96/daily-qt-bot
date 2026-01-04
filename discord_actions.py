@@ -33,7 +33,8 @@ async def create_sunday_gathering_post(channel, sunday_date_str):
 # 3. 일요일: 오늘 모임 포스트 추적 및 임베드 전송
 async def send_sunday_summary_embed(channel, today_date_str):
     target_thread = None
-    # 활성/보관 스레드에서 오늘 날짜 제목 찾기
+    
+    # 1. 기존 포스트 찾기
     async for thread in channel.archived_threads(limit=20):
         if today_date_str in thread.name and "모임" in thread.name:
             target_thread = thread; break
@@ -42,15 +43,21 @@ async def send_sunday_summary_embed(channel, today_date_str):
             if today_date_str in thread.name and "모임" in thread.name:
                 target_thread = thread; break
 
-    if target_thread:
-        embed = discord.Embed(
-            title="📢 오늘 모임 정리 및 나눔",
-            description="오늘 모임의 내용을 아래 양식에 맞춰 한 줄 정도로 정리해 주세요!",
-            color=discord.Color.blue()
+    # 2. 포스트를 못 찾았다면? 새로 생성 (안전장치)
+    if not target_thread:
+        print(f"⚠️ {today_date_str} 포스트를 찾지 못해 새로 생성합니다.")
+        target_thread = await channel.create_thread(
+            name=f"{today_date_str} 모임",
+            content=f"🗓️ **{today_date_str} 주일 모임** (자동 생성됨)"
         )
-        embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
-        embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
-        
-        await target_thread.send(embed=embed)
-    else:
-        print(f"❌ {today_date_str} 포스트를 찾지 못했습니다.")
+
+    # 3. 임베드 전송
+    embed = discord.Embed(
+        title="📢 오늘 모임 정리 및 나눔",
+        description="오늘 모임의 내용을 아래 양식에 맞춰 한 줄 정도로 정리해 주세요!",
+        color=discord.Color.blue()
+    )
+    embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
+    embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
+    
+    await target_thread.send(embed=embed)
