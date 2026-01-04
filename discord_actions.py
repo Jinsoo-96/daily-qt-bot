@@ -29,8 +29,8 @@ async def create_sunday_gathering_post(channel, sunday_date_str):
     
     # 투표 생성
     poll = discord.Poll(
-        question="참여 가능인원 확인 (수요일까지 투표해주시고, 변경사항이 있으신 분은 개인연락 부탁드려요)",
-        duration=datetime.timedelta(hours=168)
+        question="참여 가능인원 확인 (금요일 오후 8시까지 투표해주시고, 변경사항이 있으신 분은 개인연락 부탁드려요. \n 혹시 차량 필요하신 분 미리 남겨두면 좋을 것 같아요.)",
+        duration=datetime.timedelta(hours=107)
     )
     poll.add_answer(text="가능", emoji="✅")
     poll.add_answer(text="불가능", emoji="❌")
