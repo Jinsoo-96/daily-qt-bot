@@ -11,13 +11,24 @@ def get_qt_data():
         res = requests.get(url, headers=headers)
         res.encoding = 'euc-kr'
         soup = BeautifulSoup(res.text, 'html.parser')
+        
+        # 날짜 추출 (0000.00.00 형식)
         date = soup.select_one('.date li:nth-child(2)').get_text(strip=True) if soup.select_one('.date li:nth-child(2)') else "0000.00.00"
+        
         qt_header = soup.select_one('.font-size h1')
-        bible_range = qt_header.select_one('span').get_text(strip=True).replace('\xa0', ' ')
+        # [수정] 성경 범위에서 모든 공백 제거 (예: 2:28~3:12)
+        bible_range = qt_header.select_one('span').get_text(strip=True).replace('\xa0', '').replace(' ', '')
+        # 큐티 제목 추출
         qt_title = qt_header.select_one('em').get_text(strip=True).replace('\xa0', ' ')
         
         bible_div = soup.select_one('.bible')
-        content_parts = [f"# {qt_title}", f"`📜 {bible_range}`", "---", "### 📖 성경 말씀"]
+        # [수정] 본문 구성: 제목에서 성경 범위(bible_range)는 제외함
+        content_parts = [
+            f"# {qt_title}",
+            "~~　　　　　　　　　　　　　　　　　　　　~~", # 가로선 효과
+            "### 📖 성경 말씀"
+        ]
+        
         for el in bible_div.find_all(['p', 'table']):
             if el.name == 'p' and 'title' in el.get('class', []):
                 content_parts.append(f"\n**{el.get_text(strip=True)}**")
@@ -25,15 +36,16 @@ def get_qt_data():
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
                 content_parts.append(f"> **{num}** {txt}")
-        content_parts.append("*💡 오늘도 주님의 말씀으로 승리하는 청년부가 됩시다!*")
+                
+        content_parts.append("\n~~　　　　　　　　　　　　　　　　　　　　~~\n**💡 오늘도 주님의 말씀으로 승리하는 청년부가 됩시다!**")
         
         full_content = "\n".join(content_parts)
-        # 디스코드 글자 수 제한(2000자) 안전장치
         if len(full_content) > 1950:
-            full_content = full_content[:1950] + "\n\n...(이하 생략 - 더 보기는 홈페이지를 참고하세요)"
+            full_content = full_content[:1950] + "\n\n...(본문이 길어 생략되었습니다)"
             
-        return date, qt_title, full_content
-    except: return None, None, None
+        return date, qt_title, bible_range, full_content
+    except:
+        return None, None, None, None
 
 async def run_bot():
     token = os.environ.get('DISCORD_BOT_TOKEN')
@@ -49,7 +61,7 @@ async def run_bot():
     @client.event
     async def on_ready():
         print(f'✅ {client.user} 로그인 성공.')
-        date, title, content = get_qt_data()
+        date, title, bible_range, content = get_qt_data()
         if not content:
             await client.close()
             return
@@ -57,7 +69,7 @@ async def run_bot():
         try:
             channel = await client.fetch_channel(channel_id)
             if isinstance(channel, discord.ForumChannel):
-                # 1. 기존 고정 해제 (최신순 루프 최적화)
+                # 1. 기존 고정 해제 (최신순 필터링)
                 active_threads = await channel.guild.active_threads()
                 for thread in active_threads:
                     if thread.parent_id == channel.id and thread.flags.pinned:
@@ -65,18 +77,18 @@ async def run_bot():
                         print(f"✔️ 이전 포스트 고정 해제: {thread.name}")
                         break
 
-                # 2. 새 포스트 생성 (본문 content 사용)
+                # 2. [수정] 새 포스트 생성: 제목에 날짜와 성경 범위를 넣음
                 new_post = await channel.create_thread(
-                    name=f"[{date}] {title}",
+                    name=f"[{date}] {bible_range} {title}",
                     content=content 
                 )
                 
                 await asyncio.sleep(2)
 
                 try:
-                    # 포스트 목록 상단 고정
+                    # 포스트 상단 고정
                     await new_post.thread.edit(pinned=True)
-                    # 포스트 내부 본문 메시지 고정
+                    # 본문 메시지 고정
                     await new_post.message.pin()
                     print(f"🚀 [{date}] 게시 및 상단 고정 완료!")
                 except Exception as e:
