@@ -56,14 +56,11 @@ async def send_sunday_summary_embed(channel, today_date_str):
     # 2. 포스트를 못 찾았다면? 새로 생성
     if not target_thread:
         print(f"⚠️ {today_date_str} 포스트를 찾지 못해 새로 생성합니다.")
-        
-        # [수정 포인트] .thread 를 붙여서 실제 스레드 객체를 가져와야 합니다.
         result = await channel.create_thread(
             name=f"{today_date_str} 모임",
             content=f"🗓️ **{today_date_str} 주일 모임** (자동 생성됨)"
         )
-        target_thread = result.thread # 여기서 진짜 방(Thread)을 꺼냅니다.
-        
+        target_thread = result.thread 
         await asyncio.sleep(2)
 
     # 3. 임베드 전송
@@ -74,10 +71,11 @@ async def send_sunday_summary_embed(channel, today_date_str):
             color=discord.Color.blue()
         )
         embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
-        embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨ @everyone")
+        # 푸터의 @everyone은 알림 기능은 없지만, 누가 대상인지 보여주는 용도로 둡니다.
+        embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
         
-        # 이제 .send 가 정상 작동합니다.
-        await target_thread.send(embed=embed)
+        # [핵심 수정] content="@everyone"을 추가하여 실제 알림이 울리게 합니다.
+        await target_thread.send(content="@everyone", embed=embed)
         print(f"✅ {today_date_str} 포스트에 나눔 공지 완료")
             
     except Exception as e:
