@@ -40,7 +40,7 @@ async def create_sunday_gathering_post(channel, sunday_date_str):
 async def send_sunday_summary_embed(channel, today_date_str):
     target_thread = None
     
-    # 1. 기존 포스트 찾기 로직
+    # 1. 기존 포스트 찾기
     async for thread in channel.archived_threads(limit=20):
         if today_date_str in thread.name and "모임" in thread.name:
             target_thread = thread; break
@@ -52,14 +52,17 @@ async def send_sunday_summary_embed(channel, today_date_str):
     # 2. 포스트를 못 찾았다면? 새로 생성
     if not target_thread:
         print(f"⚠️ {today_date_str} 포스트를 찾지 못해 새로 생성합니다.")
-        target_thread = await channel.create_thread(
+        
+        # [수정 포인트] .thread 를 붙여서 실제 스레드 객체를 가져와야 합니다.
+        result = await channel.create_thread(
             name=f"{today_date_str} 모임",
             content=f"🗓️ **{today_date_str} 주일 모임** (자동 생성됨)"
         )
-        # 생성 직후 안정화를 위해 대기
+        target_thread = result.thread # 여기서 진짜 방(Thread)을 꺼냅니다.
+        
         await asyncio.sleep(2)
 
-    # 3. 임베드 전송 (try-except로 안정성 확보)
+    # 3. 임베드 전송
     try:
         embed = discord.Embed(
             title="📢 오늘 모임 정리 및 나눔",
@@ -69,7 +72,7 @@ async def send_sunday_summary_embed(channel, today_date_str):
         embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
         embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
         
-        # 포스트가 새로 생성되었든 기존 것이든 'target_thread'에 전송
+        # 이제 .send 가 정상 작동합니다.
         await target_thread.send(embed=embed)
         print(f"✅ {today_date_str} 포스트에 나눔 공지 완료")
             
