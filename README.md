@@ -1,44 +1,42 @@
-# 📖 생명의 삶 오늘의 QT 디스코드 봇 (Daily QT Bot)
+# 📖 청년부 오늘의 QT 디스코드 봇 (Daily QT Bot)
 
-두란노 **'생명의 삶'** 홈페이지에서 매일 아침 오늘의 QT 말씀을 스크랩하여 디스코드 채널에 자동으로 공유해 주는 봇입니다. 청년부 공동체의 말씀 묵상을 돕기 위해 제작되었습니다.
+두란노 **'생명의 삶'**의 매일 말씀을 자동으로 스크랩하여 디스코드 **포럼(Forum) 채널**에 게시하고, 해당 포스트를 **상단 고정(Pin)**해 주는 자동화 봇입니다.
 
 ## ✨ 주요 기능
-* **자동 스크랩**: 매일 업데이트되는 두란노 생명의 삶(개역개정) 본문을 가져옵니다.
-* **디스코드 연동**: 웹후크(Webhook)를 통해 지정된 채널로 깔끔한 임베드(Embed) 메시지를 전송합니다.
-* **완전 자동화**: GitHub Actions를 사용하여 별도의 서버나 개인 컴퓨터를 켜둘 필요 없이 매일 정해진 시간에 작동합니다.
-* **가독성 최적화**: 모바일에서도 편하게 읽을 수 있도록 소제목 구분 및 절 번호 강조 처리가 되어 있습니다.
+* **포럼 포스트 자동 생성**: 매일 아침 날짜를 제목으로 한 새로운 게시글을 생성합니다.
+* **상단 고정 (Auto-Pin)**: 최신 말씀이 항상 포럼 상단에 위치하도록 자동으로 '핀'을 꽂습니다.
+* **마크다운 최적화**: `#`, `###`, `> ` 등 디스코드 마크다운을 활용해 가독성 높은 디자인을 제공합니다.
+* **서버리스 운영**: GitHub Actions를 통해 24시간 서버 가동 없이 매일 정해진 시간에 작동합니다.
 
 ## 🛠 기술 스택
 * **언어**: Python 3.9+
-* **라이브러리**: BeautifulSoup4, Requests
+* **라이브러리**: `discord.py`, `BeautifulSoup4`, `requests`
 * **플랫폼**: GitHub Actions (Automation)
-* **전송 방식**: Discord Webhook
 
-## 🚀 설정 방법 (Quick Start)
+## 🚀 설정 방법 (Setup Guide)
 
-### 1. 웹후크 URL 등록 (필수)
-보안을 위해 디스코드 웹후크 주소는 GitHub Secrets에 저장해야 합니다.
-1. 이 저장소(Repository)의 **Settings** 탭으로 이동합니다.
-2. 왼쪽 사이드바에서 **Secrets and variables > Actions**를 클릭합니다.
-3. **New repository secret** 버튼을 누릅니다.
-   - **Name**: `DISCORD_WEBHOOK_URL`
-   - **Secret**: 디스코드 채널 설정에서 복사한 웹후크 URL 붙여넣기
+### 1. 디스코드 봇 설정 (Developer Portal)
+1. [Discord Developer Portal](https://discord.com/developers/applications)에서 애플리케이션 생성
+2. **Bot** 메뉴에서 `Message Content Intent`를 반드시 **ON**으로 활성화
+3. **OAuth2 -> URL Generator**에서 `bot` 스코프와 `Administrator` 권한을 선택하여 서버에 초대
 
-### 2. 자동 실행 확인
-* 현재 설정된 시간은 **매일 한국 시간(KST) 오전 6시**입니다.
-* `.github/workflows/run_qt.yml` 파일의 `cron: '0 21 * * *'` 설정이 이 시간을 담당합니다. (UTC 21시는 한국 시간 06시입니다.)
+### 2. GitHub Secrets 등록
+저장소의 **Settings > Secrets and variables > Actions**에 아래 항목을 추가합니다.
 
-### 3. 수동 실행 테스트
-1. 저장소 상단의 **Actions** 탭으로 이동합니다.
-2. 왼쪽 메뉴에서 **Daily QT Bot** 워크플로우를 선택합니다.
-3. **Run workflow** 버튼을 눌러 즉시 메시지가 오는지 확인합니다.
+| Name | Description |
+| :--- | :--- |
+| `DISCORD_BOT_TOKEN` | 디스코드 개발자 포털에서 발급받은 봇의 Token |
+| `FORUM_CHANNEL_ID` | 게시글이 올라갈 포럼 채널의 숫자 ID (개발자 모드 활용) |
 
-## 📁 파일 구조
-* `main.py`: 웹사이트 스크래핑 및 디스코드 전송 핵심 로직
-* `.github/workflows/run_qt.yml`: GitHub Actions 자동 실행 설정
+### 3. 자동 실행 스케줄
+* **실행 시간**: 매일 한국 시간(KST) **오전 06:00**
+* **수동 실행**: GitHub 저장소의 `Actions` 탭 -> `Daily QT Bot` 선택 -> `Run workflow` 클릭으로 즉시 실행 가능
+
+## 📁 파일 구성
+* `main.py`: 웹 스크래핑 및 디스코드 봇 구동 로직
+* `.github/workflows/run_qt.yml`: GitHub Actions 자동화 스크립트
 * `README.md`: 프로젝트 설명서
 
-## 📝 참고 사항
-* 본 프로젝트는 비영리적인 목적으로 공동체의 말씀 묵상을 돕기 위해 제작되었습니다.
-* 성경 본문(개역개정)의 저작권은 **대한성서공회**에 있으며, 콘텐츠의 권한은 **두란노**에 있습니다.
-* 사이트 구조가 변경될 경우 스크래핑 로직 수정이 필요할 수 있습니다.
+## ⚠️ 주의 사항
+* 본 봇은 **두란노 생명의 삶** 웹사이트의 구조에 의존합니다. 사이트 레이아웃이 변경될 경우 스크래핑 코드 수정이 필요할 수 있습니다.
+* 성경 본문의 저작권은 **대한성서공회**에, 콘텐츠 권한은 **두란노**에 있습니다.
