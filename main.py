@@ -17,7 +17,7 @@ def get_qt_data():
         qt_title = qt_header.select_one('em').get_text(strip=True).replace('\xa0', ' ')
         
         bible_div = soup.select_one('.bible')
-        content_parts = [f"# {qt_title}", f"`📜 {bible_range}`", "\n---", "### 📖 성경 말씀"]
+        content_parts = [f"# {qt_title}", f"`📜 {bible_range}`", "---", "### 📖 성경 말씀"]
         for el in bible_div.find_all(['p', 'table']):
             if el.name == 'p' and 'title' in el.get('class', []):
                 content_parts.append(f"\n**{el.get_text(strip=True)}**")
@@ -25,7 +25,7 @@ def get_qt_data():
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
                 content_parts.append(f"> **{num}** {txt}")
-        content_parts.append("\n---\n*💡 오늘도 주님의 말씀으로 승리하는 청년부가 됩시다!*")
+        content_parts.append("---", "*💡 오늘도 주님의 말씀으로 승리하는 청년부가 됩시다!*")
         
         full_content = "\n".join(content_parts)
         # 디스코드 글자 수 제한(2000자) 안전장치
