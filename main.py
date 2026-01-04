@@ -2,6 +2,7 @@ import discord
 import requests
 from bs4 import BeautifulSoup
 import os
+import re
 import asyncio
 
 def get_qt_data():
@@ -16,21 +17,27 @@ def get_qt_data():
         date = soup.select_one('.date li:nth-child(2)').get_text(strip=True) if soup.select_one('.date li:nth-child(2)') else "0000.00.00"
         
         qt_header = soup.select_one('.font-size h1')
-        # 성경 범위 공백 제거 (예: 2:28~3:12)
-        bible_range = qt_header.select_one('span').get_text(strip=True).replace('\xa0', '').replace(' ', '')
+        # 1. 모든 공백을 제거 (요한일서2:28~3:12)
+        raw_range = qt_header.select_one('span').get_text(strip=True).replace('\xa0', '').replace(' ', '')
+        
+        # 2. 숫자가 처음 등장하는 위치를 찾아 그 앞에 공백 2개 삽입
+        # 결과: 요한일서  2:28~3:12
+        bible_range = re.sub(r'(\d)', r'  \1', raw_range, count=1)
         # 큐티 제목
         qt_title = qt_header.select_one('em').get_text(strip=True).replace('\xa0', ' ')
         
         bible_div = soup.select_one('.bible')
         content_parts = [
-            f"# {bible_range}",
-            f"## {qt_title}",
+            f"## {bible_range}",
+            f"### {qt_title}",
             "~~　　　　　　　　　　　　　　　　　　　　~~", 
         ]
         
         for el in bible_div.find_all(['p', 'table']):
             if el.name == 'p' and 'title' in el.get('class', []):
-                content_parts.append(f"\n**{el.get_text(strip=True)}**")
+                # [하늘색 적용] 텍스트를 ' '로 감싸면 하늘색 박스가 됩니다.
+                title_text = el.get_text(strip=True)
+                content_parts.append(f"```py\n'{title_text}'```")
             elif el.name == 'table':
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
@@ -38,7 +45,7 @@ def get_qt_data():
                 content_parts.append(f"{num}. {txt}")
                 
         # [수정된 부분] 들여쓰기 위치 조정 및 안전한 메시지 결합
-        footer = f"\n**💡 오늘도 주님의 말씀으로 승리하는 하루가 됩시다!**\n🔗 [본문링크]({url})\n@everyone"
+        footer = f"\n\n\n**💡 오늘도 주님의 말씀으로 승리하는 하루가 됩시다!**\n\n@everyone  [_]({url})"
         main_body = "\n".join(content_parts)
         
         # 디스코드 2000자 제한 대응 (footer 길이를 뺀 나머지만 본문 허용)
