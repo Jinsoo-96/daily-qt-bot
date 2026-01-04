@@ -1,4 +1,4 @@
-name: Daily QT Bot
+name: Daily QT
 
 on:
   schedule:
