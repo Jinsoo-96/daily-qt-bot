@@ -25,8 +25,7 @@ def get_qt_data():
         # [수정] 본문 구성: 제목에서 성경 범위(bible_range)는 제외함
         content_parts = [
             f"# {qt_title}",
-            "~~　　　　　　　　　　　　　　　　　　　　~~", # 가로선 효과
-            "### 📖 성경 말씀"
+            "### 📖 성경 말씀 \n"
         ]
         
         for el in bible_div.find_all(['p', 'table']):
@@ -35,9 +34,12 @@ def get_qt_data():
             elif el.name == 'table':
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
-                content_parts.append(f"> **{num}** {txt}")
+                # [들여쓰기 팁] 
+                # 절 번호와 본문 사이에 '전각 공백'을 넣어 본문이 시작되는 위치를 밀어줍니다.
+                # 디스코드 인용구(>)는 줄이 넘어가도 왼쪽 바(|)가 유지되어 구분이 확실해집니다.
+                content_parts.append(f"> **{num}**　{txt}")
                 
-        content_parts.append("\n~~　　　　　　　　　　　　　　　　　　　　~~\n**💡 오늘도 주님의 말씀으로 승리하는 청년부가 됩시다!**")
+        content_parts.append("**💡 오늘도 주님의 말씀으로 승리하는 하루가 됩시다!** \n@everyone")
         
         full_content = "\n".join(content_parts)
         if len(full_content) > 1950:
@@ -79,7 +81,7 @@ async def run_bot():
 
                 # 2. [수정] 새 포스트 생성: 제목에 날짜와 성경 범위를 넣음
                 new_post = await channel.create_thread(
-                    name=f"[{date}] {bible_range} {title}",
+                    name=f"[{date}] {bible_range}",
                     content=content 
                 )
                 
