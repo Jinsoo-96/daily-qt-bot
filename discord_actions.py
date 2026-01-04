@@ -43,21 +43,31 @@ async def send_sunday_summary_embed(channel, today_date_str):
             if today_date_str in thread.name and "모임" in thread.name:
                 target_thread = thread; break
 
-    # 2. 포스트를 못 찾았다면? 새로 생성 (안전장치)
+    # 2. 포스트를 못 찾았다면? 새로 생성
     if not target_thread:
         print(f"⚠️ {today_date_str} 포스트를 찾지 못해 새로 생성합니다.")
+        # 포럼 채널일 경우 스레드 생성이 완료될 때까지 기다림
         target_thread = await channel.create_thread(
             name=f"{today_date_str} 모임",
             content=f"🗓️ **{today_date_str} 주일 모임** (자동 생성됨)"
         )
+        # 생성 직후 바로 메시지를 보내면 누락될 수 있으므로 2초 대기
+        await asyncio.sleep(2)
 
-    # 3. 임베드 전송
-    embed = discord.Embed(
-        title="📢 오늘 모임 정리 및 나눔",
-        description="오늘 모임의 내용을 아래 양식에 맞춰 한 줄 정도로 정리해 주세요!",
-        color=discord.Color.blue()
-    )
-    embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
-    embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
-    
-    await target_thread.send(embed=embed)
+    # 3. 임베드 전송 (중요: target_thread.send를 확실히 호출)
+    try:
+        embed = discord.Embed(
+            title="📢 오늘 모임 정리 및 나눔",
+            description="오늘 모임의 내용을 아래 양식에 맞춰 한 줄 정도로 정리해 주세요!",
+            color=discord.Color.blue()
+        )
+        embed.add_field(name="📝 작성 내용", value="• 오늘 모임 인원수\n• 장소\n• 간략한 나눔 내용 (한 줄)", inline=False)
+        embed.set_footer(text="함께 나눌 수 있어 감사합니다. ✨")
+        
+        # 실제 메시지 전송 후 결과 확인을 위해 변수에 담음
+        sent_msg = await target_thread.send(embed=embed)
+        if sent_msg:
+            print(f"✅ {today_date_str} 포스트에 나눔 임베드 전송 성공!")
+            
+    except Exception as e:
+        print(f"❌ 임베드 전송 중 오류 발생: {e}")
