@@ -28,8 +28,7 @@ def get_qt_data():
         
         bible_div = soup.select_one('.bible')
         content_parts = [
-            f"## {qt_title}",
-            "\n\n\n\n\n", 
+            f"## {qt_title} \n\n\n",
         ]
         
         for el in bible_div.find_all(['p', 'table']):
