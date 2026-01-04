@@ -28,7 +28,6 @@ def get_qt_data():
         
         bible_div = soup.select_one('.bible')
         content_parts = [
-            "~~　　　　　　　　　　　　　　　　　　　　~~",
             f"## {bible_range}",
             f"### {qt_title}",
             "~~　　　　　　　　　　　　　　　　　　　　~~", 
@@ -36,9 +35,7 @@ def get_qt_data():
         
         for el in bible_div.find_all(['p', 'table']):
             if el.name == 'p' and 'title' in el.get('class', []):
-                # [하늘색 적용] 텍스트를 ' '로 감싸면 하늘색 박스가 됩니다.
-                title_text = el.get_text(strip=True)
-                content_parts.append(f"```py\n'{title_text}'```")
+                content_parts.append(f"\n**{el.get_text(strip=True)}**")
             elif el.name == 'table':
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
