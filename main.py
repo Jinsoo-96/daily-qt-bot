@@ -35,7 +35,7 @@ async def run_bot():
         try:
             # 한국 시간 기준 (KST) 설정
             now = datetime.datetime.now(datetime.timezone(datetime.timedelta(hours=9)))
-            weekday = now.weekday()
+            weekday = 0
             
             # --- 큐티 모드 ---
             if args.mode == 'qt':
