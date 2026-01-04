@@ -30,7 +30,7 @@ def get_qt_data():
             elif el.name == 'table':
                 num = el.find('th').get_text(strip=True)
                 txt = el.find('td').get_text(strip=True)
-                content_parts.append(f"{num}. {txt}")
+                content_parts.append(f"{num}\. {txt}")
                 
         footer = f"\n\n\n**💡 오늘도 주님의 말씀으로 승리하는 하루가 됩시다!**\n\n@everyone  [_]({url})"
         main_body = "\n".join(content_parts)
