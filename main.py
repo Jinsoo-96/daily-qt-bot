@@ -28,7 +28,9 @@ def get_qt_data():
         
         bible_div = soup.select_one('.bible')
         content_parts = [
-            f"## {qt_title} \n\n\n",
+            f"## {qt_title}",
+            "　", # 전각 공백 (투명한 한 줄)
+            "　", # 한 줄 더 띄우고 싶다면 추가
         ]
         
         for el in bible_div.find_all(['p', 'table']):
