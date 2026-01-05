@@ -20,31 +20,41 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
     MAX_LEN = 1900
     ai_header = "✨ **AI 말씀 해설 & 묵상 에세이**\n\n"
     full_text = ai_header + ai_reflection
-    
+
     # 문단 단위로 쪼개기
     paragraphs = full_text.split("\n\n")
     buffer = ""
 
     for para in paragraphs:
         para = para.strip()
-        if not para: continue
+        if not para or para in {">", "> "}:
+            continue  # 내용 없는 인용 줄 스킵
 
         is_quote = para.startswith(">")
 
-        # 인용 문단인데 buffer에 뭔가 쌓여 있으면
-        # → buffer 먼저 보내고 인용은 새로 시작
-        if is_quote and buffer:
+        # buffer 마지막 문단이 인용인지 확인
+        last_para = buffer.strip().split("\n\n")[-1] if buffer else ""
+        prev_is_quote = last_para.startswith(">") if last_para else False
+
+        # 인용 문단인데 buffer에 다른 내용이 있으면 먼저 flush
+        if is_quote and buffer and not prev_is_quote:
             await target_thread.send(content=buffer.strip())
             await asyncio.sleep(2)
             buffer = ""
 
-        # 길이 초과 체크
+        # 길이 초과 시 flush
         if len(buffer) + len(para) + 2 > MAX_LEN:
             if buffer:
                 await target_thread.send(content=buffer.strip())
                 await asyncio.sleep(2)
-            buffer = para + "\n\n"
+            buffer = ""
+
+        # 줄 연결
+        if is_quote and prev_is_quote:
+            # 연속된 인용은 한 줄로 이어 붙임
+            buffer += para + "\n"
         else:
+            # 일반 문단 또는 인용 전환 시 빈 줄 포함
             buffer += para + "\n\n"
 
     # 마지막으로 남은 내용 전송
