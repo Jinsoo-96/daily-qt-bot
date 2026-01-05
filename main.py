@@ -6,6 +6,7 @@ import argparse
 import sys
 from qt_provider import get_qt_data
 from discord_actions import post_daily_qt, create_sunday_gathering_post, send_sunday_summary_embed
+from ai_provider import get_ai_reflection
 
 async def run_bot():
     # 1. 인자값 파싱
@@ -40,11 +41,17 @@ async def run_bot():
             # --- 큐티 모드 ---
             if args.mode == 'qt':
                 print("📖 큐티 포스팅을 시작합니다...")
+
+                # 1. 큐티 데이터 가져오기
                 channel = await client.fetch_channel(int(qt_channel_id))
                 date, title, bible_range, content = get_qt_data()
-                if content:
-                    await post_daily_qt(channel, date, bible_range, content)
+
+                # 2. Gemini AI 해설 생성하기
+                ai_commentary = get_ai_reflection(title, bible_range, content)
+                if content and ai_commentary:
+                    await post_daily_qt(channel, date, bible_range, content, ai_commentary)
                     print(f"✅ {date} 큐티 포스팅 완료")
+
             
             # --- 주간 태스크 모드 (월/일) ---
             elif args.mode == 'task':

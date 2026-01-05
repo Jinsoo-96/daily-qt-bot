@@ -3,15 +3,30 @@ import asyncio
 import datetime
 
 # 1. 큐티 포스트
-async def post_daily_qt(channel, date, bible_range, content):
+async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
     active_threads = await channel.guild.active_threads()
     for thread in active_threads:
         if thread.parent_id == channel.id and thread.flags.pinned:
             await thread.edit(pinned=False); break
     new_post = await channel.create_thread(name=f"{date} - {bible_range}", content=content)
+    target_thread = new_post.thread
     await asyncio.sleep(2)
     await new_post.thread.edit(pinned=True)
     await new_post.message.pin()
+
+    # (4) AI 해설 전송 (고정하지 않음)
+    ai_header = "\n✨ **AI 말씀 해설 & 묵상 에세이**\n"
+    full_ai_message = ai_header + ai_reflection
+
+    # 디스코드 2000자 제한 방어 로직
+    if len(full_ai_message) > 2000:
+        for i in range(0, len(full_ai_message), 1900):
+            await target_thread.send(content=full_ai_message[i:i+1900])
+            await asyncio.sleep(0.5)
+    else:
+        await target_thread.send(content=full_ai_message)
+
+    print(f"✅ {date} 큐티 본문 고정 및 AI 해설 전송 완료")
 
 # 2. 월요일: 차주 주일 모임 포스트 & 투표 생성
 async def create_sunday_gathering_post(channel, sunday_date_str):
