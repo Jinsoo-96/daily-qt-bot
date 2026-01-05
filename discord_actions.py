@@ -52,7 +52,7 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
         # 줄 연결
         if is_quote and prev_is_quote:
             # 연속된 인용은 한 줄로 이어 붙임
-            buffer += para + "\n"
+            buffer += para + " \n"
         else:
             # 일반 문단 또는 인용 전환 시 빈 줄 포함
             buffer += para + "\n\n"
