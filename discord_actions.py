@@ -22,30 +22,24 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
 
     full_text = ai_header + ai_reflection
     
-    # 문단 단위로 쪼개기
-    paragraphs = full_text.split("\n\n")
-    buffer = ""
-
-    for para in paragraphs:
-        para = para.strip()
-        if not para: continue
-
-        # 현재 버퍼에 이 문단을 추가했을 때 1900자가 넘으면, 지금까지 쌓인 걸 먼저 보냄
-        if len(buffer) + len(para) + 2 > MAX_LEN:
-            if buffer:
-                await target_thread.send(content=buffer.strip())
-                await asyncio.sleep(2)
-            buffer = "\n" + para + "\n\n"
-        else:
-            buffer += para + "\n\n"
-
-    # 마지막으로 남은 내용 전송
-    if buffer:
-        await target_thread.send(content=buffer.strip())
+    # 글자 수에 따른 전송 방식 결정
+    if len(full_text) < 1900:
+        # 가공 없이 그대로 전송
+        await target_thread.send(content=full_text)
+    else:
+        # 1900자 넘으면 임베드로 안전하게 전송
+        from discord import Embed
+        embed = Embed(
+            title=f"📖 {date} 말씀 묵상 전문",
+            description=ai_reflection,
+            color=0xDBEAFE
+        )
+        # 헤더는 일반 메시지로, 본문은 임베드로 보냄
+        await target_thread.send(content=ai_header, embed=embed)
 
     print(f"✅ {date} AI 해설 전송 완료")
 
-    # 4. 포스트 및 메시지 핀 고정 (가장 마지막에 실행)
+    # 핀 고정
     await target_thread.edit(pinned=True)
     await new_post.message.pin()
 
