@@ -44,10 +44,12 @@ async def run_bot():
 
                 # 1. 큐티 데이터 가져오기
                 channel = await client.fetch_channel(int(qt_channel_id))
-                date, title, bible_range, content = get_qt_data()
+                date, title, bible_range, content, main_body = get_qt_data()
 
                 # 2. Gemini AI 해설 생성하기
-                ai_commentary = get_ai_reflection(title, bible_range, content)
+                if main_body:
+                    ai_commentary = get_ai_reflection(title, bible_range, main_body)
+                    
                 if content and ai_commentary:
                     await post_daily_qt(channel, date, bible_range, content, ai_commentary)
                     print(f"✅ {date} 큐티 포스팅 완료")

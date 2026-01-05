@@ -11,8 +11,6 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
     new_post = await channel.create_thread(name=f"{date} - {bible_range}", content=content)
     target_thread = new_post.thread
     await asyncio.sleep(2)
-    await new_post.thread.edit(pinned=True)
-    await new_post.message.pin()
 
     # (4) AI 해설 전송 (고정하지 않음)
     ai_header = "\n✨ **AI 말씀 해설 & 묵상 에세이**\n"
@@ -27,6 +25,10 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
         await target_thread.send(content=full_ai_message)
 
     print(f"✅ {date} 큐티 본문 고정 및 AI 해설 전송 완료")
+
+    # 핀고정 메세지 위치때문에 가장 마지막에 동작시키기
+    await new_post.thread.edit(pinned=True)
+    await new_post.message.pin()
 
 # 2. 월요일: 차주 주일 모임 포스트 & 투표 생성
 async def create_sunday_gathering_post(channel, sunday_date_str):

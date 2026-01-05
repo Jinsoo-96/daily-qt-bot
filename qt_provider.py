@@ -46,7 +46,8 @@ def get_qt_data():
             main_body = main_body[:max_body_length - 35] + "\n\n...(본문이 길어 생략되었습니다)"
         
         full_content = main_body + footer
-        return date, qt_title, bible_range, full_content
+        # [수정] AI 해설용으로 쓸 'main_body'를 추가로 반환합니다.
+        return date, qt_title, bible_range, full_content, main_body
         
     except Exception as e:
         print(f"데이터 수집 중 오류: {e}")
