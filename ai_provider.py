@@ -64,7 +64,7 @@ def get_ai_reflection(bible_title, bible_range, content_body):
             print(f"🤖 AI 응답 생성 중... (시도 {attempt + 1}/{max_retries})")
             # 3. 콘텐츠 생성 (최신 문법: client.models.generate_content)
             response = client.models.generate_content(
-                model='gemini-3-flash',
+                model='gemini-3-flash-preview',
                 contents=prompt,
                 config=config)
             
