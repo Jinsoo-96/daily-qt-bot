@@ -74,8 +74,9 @@ def get_ai_reflection(bible_title, bible_range, content_body):
 > 결단·마무리·평가형 질문 금지
 
 
-[성경 제목: {bible_title} {bible_range}]
 [성경 본문]
+{bible_title}
+{bible_range}
 {content_body}
 """
     max_retries = 3  # 최대 3번 시도
@@ -103,7 +104,13 @@ def get_ai_reflection(bible_title, bible_range, content_body):
             
             # 응답이 성공적으로 왔고 텍스트가 있는 경우
             if response and response.text:
-                return response.text
+               # 1. 일단 모든 '>' 뒤에 공백을 붙입니다.
+               content = response.text.replace('>', '> ')
+               
+               # 2. 혹시 이미 공백이 있어서 '>  '가 되어버린 경우를 대비해 다시 '> '로 정렬합니다.
+               fixed_content = content.replace('>  ', '> ')
+               
+               return fixed_content
             
             # 응답은 왔으나 텍스트가 없는 경우 (Safety Filter 작동 등)
             else:
