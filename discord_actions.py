@@ -33,15 +33,15 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
         # 현재 버퍼에 이 문단을 추가했을 때 1900자가 넘으면, 지금까지 쌓인 걸 먼저 보냄
         if len(buffer) + len(para) + 2 > MAX_LEN:
             if buffer:
-                await target_thread.send(content=buffer)
+                await target_thread.send(content=buffer.strip())
                 await asyncio.sleep(2)
-            buffer = para + "\n\n"
+            buffer = "\n" + para + "\n\n"
         else:
             buffer += para + "\n\n"
 
     # 마지막으로 남은 내용 전송
     if buffer:
-        await target_thread.send(content=buffer)
+        await target_thread.send(content=buffer.strip())
 
     print(f"✅ {date} AI 해설 전송 완료")
 
