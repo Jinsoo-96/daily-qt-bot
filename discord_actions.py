@@ -1,6 +1,7 @@
 import discord
 import asyncio
 import datetime
+import io
 
 # 1. 큐티 포스트
 async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
@@ -21,11 +22,14 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
     ai_header = "✨ **AI 말씀 해설 & 묵상 에세이**\n\n"
 
     full_text = ai_header + ai_reflection
+
+    file_data = io.BytesIO(full_text.encode('utf-8'))
+    md_file = discord.File(file_data, filename=f"{date}_묵상.md")
     
     # 글자 수에 따른 전송 방식 결정
     if len(full_text) < 1900:
         # 가공 없이 그대로 전송
-        await target_thread.send(content=full_text)
+        await target_thread.send(content=full_text, file=md_file)
     else:
         # 1900자 넘으면 임베드로 안전하게 전송
         from discord import Embed
@@ -34,7 +38,7 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
             color=0xDBEAFE
         )
         # 헤더는 일반 메시지로, 본문은 임베드로 보냄
-        await target_thread.send(content=ai_header, embed=embed)
+        await target_thread.send(content=ai_header, embed=embed, file=md_file)
 
     print(f"✅ {date} AI 해설 전송 완료")
 
