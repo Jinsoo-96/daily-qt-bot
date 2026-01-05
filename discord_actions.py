@@ -19,10 +19,6 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
     # 3. AI 해설 전송 로직 (문단 단위 분할)
     MAX_LEN = 1900
     ai_header = "✨ **AI 말씀 해설 & 묵상 에세이**\n\n"
-    
-    # 3. AI 해설 전송 로직 (심플 버전)
-    MAX_LEN = 1900
-    ai_header = "✨ **AI 말씀 해설 & 묵상 에세이**\n\n"
     full_text = ai_header + ai_reflection
     
     # 문단 단위로 쪼개기
@@ -33,7 +29,16 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
         para = para.strip()
         if not para: continue
 
-        # 현재 버퍼에 이 문단을 추가했을 때 1900자가 넘으면, 지금까지 쌓인 걸 먼저 보냄
+        is_quote = para.startswith(">")
+
+        # 인용 문단인데 buffer에 뭔가 쌓여 있으면
+        # → buffer 먼저 보내고 인용은 새로 시작
+        if is_quote and buffer:
+            await target_thread.send(content=buffer.strip())
+            await asyncio.sleep(2)
+            buffer = ""
+
+        # 길이 초과 체크
         if len(buffer) + len(para) + 2 > MAX_LEN:
             if buffer:
                 await target_thread.send(content=buffer.strip())
