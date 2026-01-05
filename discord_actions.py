@@ -30,7 +30,6 @@ async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
         # 1900자 넘으면 임베드로 안전하게 전송
         from discord import Embed
         embed = Embed(
-            title=f"📖 {date} 말씀 묵상 전문",
             description=ai_reflection,
             color=0xDBEAFE
         )
