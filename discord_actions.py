@@ -4,30 +4,98 @@ import datetime
 
 # 1. 큐티 포스트
 async def post_daily_qt(channel, date, bible_range, content, ai_reflection):
+    # 1. 기존 고정된 스레드 해제
     active_threads = await channel.guild.active_threads()
     for thread in active_threads:
         if thread.parent_id == channel.id and thread.flags.pinned:
-            await thread.edit(pinned=False); break
+            await thread.edit(pinned=False)
+            break
+
+    # 2. 새 포럼 포스트(스레드) 생성
     new_post = await channel.create_thread(name=f"{date} - {bible_range}", content=content)
     target_thread = new_post.thread
     await asyncio.sleep(2)
 
-    # (4) AI 해설 전송 (고정하지 않음)
-    ai_header = "\n✨ **AI 말씀 해설 & 묵상 에세이**\n"
-    full_ai_message = ai_header + ai_reflection
+    # 3. AI 해설 전송 로직 (문단 단위 분할)
+    MAX_LEN = 1900
+    ai_header = "✨ **AI 말씀 해설 & 묵상 에세이**\n\n"
+    
+    # 내부 전송용 함수
+    async def send_chunk(text):
+        if text.strip():
+            await target_thread.send(content=text)
+            await asyncio.sleep(2)
 
-    # 디스코드 2000자 제한 방어 로직
-    if len(full_ai_message) > 2000:
-        for i in range(0, len(full_ai_message), 1900):
-            await target_thread.send(content=full_ai_message[i:i+1900])
-            await asyncio.sleep(0.5)
+    # 1. 헤더와 내용을 하나로 합침
+    full_text = ai_header + ai_reflection
+
+    # 2. 전체 길이가 짧으면 그냥 한 번에 보냄
+    if len(full_text) <= MAX_LEN:
+        await send_chunk(full_text)
     else:
-        await target_thread.send(content=full_ai_message)
+        # ---------------------------------------------------------
+        # [전략 1] '### 묵상 에세이:' 제목을 기준으로 이등분 시도
+        # ---------------------------------------------------------
+        split_keyword = "### 묵상 에세이:"
+        
+        if split_keyword in full_text:
+            # 키워드 기준으로 앞(해설)과 뒤(에세이)를 나눔
+            parts = full_text.split(split_keyword, 1)
+            first_part = parts[0].strip()
+            second_part = (split_keyword + parts[1]).strip()
+            
+            # 나눈 두 파트가 각각 1900자 이내라면, 이대로 전송하고 종료
+            if len(first_part) <= MAX_LEN and len(second_part) <= MAX_LEN:
+                await send_chunk(first_part)
+                await send_chunk(second_part)
+                print("✅ 전략 1(키워드 분할)로 전송 성공")
+                return
+            
+        # ---------------------------------------------------------
+        # [전략 2] 전략 1이 실패한 경우 (에세이가 너무 길거나 키워드 없음)
+        # 안전 모드: 인용구(>) 서식을 유지하며 문단 분할
+        # ---------------------------------------------------------
+        print("⚠️ 전략 2(문단 분할) 시작")
+        paragraphs = full_text.split("\n\n")
+        buffer = ""
+
+        for para in paragraphs:
+            para = para.strip()
+            if not para: continue
+
+            # 문단 하나 자체가 1900자를 넘는 경우 (강제 분할)
+            if len(para) > MAX_LEN:
+                if buffer:
+                    await send_chunk(buffer)
+                    buffer = ""
+                
+                # 인용문인지 확인
+                is_quote = para.startswith(">")
+                
+                # 1500자 단위로 자르면서, 잘린 뒷부분에 > 붙여주기
+                for i in range(0, len(para), 1500):
+                    chunk = para[i:i+1500]
+                    # 인용문인데 잘린 뒷부분에 > 가 없다면 붙여줌
+                    if is_quote and not chunk.startswith(">"):
+                        chunk = "> " + chunk
+                    await send_chunk(chunk)
+                continue
+
+            # 일반적인 문단 처리
+            if len(buffer) + len(para) + 2 > MAX_LEN:
+                await send_chunk(buffer)
+                # 버퍼를 새로 시작할 때, 현재 문단이 인용문이면 서식 유지 확인 (이미 para에 포함되어 있음)
+                buffer = para + "\n\n"
+            else:
+                buffer += para + "\n\n"
+
+        if buffer:
+            await send_chunk(buffer)
 
     print(f"✅ {date} 큐티 본문 고정 및 AI 해설 전송 완료")
 
-    # 핀고정 메세지 위치때문에 가장 마지막에 동작시키기
-    await new_post.thread.edit(pinned=True)
+    # 4. 포스트 및 메시지 핀 고정 (가장 마지막에 실행)
+    await target_thread.edit(pinned=True)
     await new_post.message.pin()
 
 # 2. 월요일: 차주 주일 모임 포스트 & 투표 생성
