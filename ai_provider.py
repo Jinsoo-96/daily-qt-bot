@@ -3,8 +3,6 @@ from google.genai import types
 import os
 import time
 
-genai.configure(api_key=os.getenv("GEMINI_API_KEY"))
-
 def get_ai_reflection(bible_title, bible_range, content_body):
     client = genai.Client(api_key=os.getenv("GEMINI_API_KEY"))
     
