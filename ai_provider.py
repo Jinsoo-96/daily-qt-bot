@@ -75,7 +75,6 @@ def get_ai_reflection(bible_title, bible_range, content_body):
 
 
 [성경 본문]
-{bible_title}
 {bible_range}
 {content_body}
 """
